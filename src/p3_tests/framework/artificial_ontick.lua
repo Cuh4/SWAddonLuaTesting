@@ -17,10 +17,13 @@
 ]]
 
 -------------------------------
--- // Main
+-- // Variables
 -------------------------------
 local recent = server.getTimeMillisec()
 
+-------------------------------
+-- // Main
+-------------------------------
 AuroraFramework.ready:connect(function()
     local statusUI = AuroraFramework.services.UIService.createScreenUI(
         "ArtificialOnTickDisplay",
