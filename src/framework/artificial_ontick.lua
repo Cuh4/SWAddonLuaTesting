@@ -1,13 +1,12 @@
 --------------------------------------------------------
--- [Main] Players - Player List
+-- [Main] Framework - Artificial onTick
 --------------------------------------------------------
 
 --[[
     ----------------------------
 
     INFO:
-        This prints out all players in the server when the addon starts.
-        This is simply to see all player attributes.
+        This tests if the framework's internal "artificialOnTick" event is working correctly.
 
     CREDIT:
         Author: @cuh6_ (Discord)
