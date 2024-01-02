@@ -17,9 +17,9 @@ AuroraFramework = {
 	callbacks = {},
 
 	attributes = {},
+	internal = {},
 	libraries = {},
-	services = {},
-	internal = {}
+	services = {}
 }
 
 g_savedata = {
@@ -50,8 +50,22 @@ g_savedata = {
 }
 
 --------------------------------------------------------------------------------
---// Internal \\--
+--// Attributes \\--
 --------------------------------------------------------------------------------
+---------------- DLCs
+AuroraFramework.attributes.WeaponsEnabled = server.dlcWeapons()
+AuroraFramework.attributes.AridEnabled = server.dlcArid()
+AuroraFramework.attributes.SpaceEnabled = server.dlcSpace()
+
+---------------- Misc
+AuroraFramework.attributes.AddonIndex = (server.getAddonIndex())
+
+--------------------------------------------------------------------------------
+--// Libraries \\--
+--------------------------------------------------------------------------------
+---------------- Class
+AuroraFramework.libraries.class = {}
+
 -- Create a class
 ---@param name string
 ---@param methods table|nil
@@ -59,8 +73,8 @@ g_savedata = {
 ---@param events table|nil
 ---@param parentTo table|nil
 ---@param parentToIndex any
----@return af_internal_class
-AuroraFramework.internal.class = function(name, methods, properties, events, parentTo, parentToIndex)
+---@return af_libs_class_class
+AuroraFramework.libraries.class.create = function(name, methods, properties, events, parentTo, parentToIndex)
 	-- assign properties and events to the class
 	local class = {
 		__name__ = name,
@@ -89,20 +103,13 @@ AuroraFramework.internal.class = function(name, methods, properties, events, par
 	return class
 end
 
---------------------------------------------------------------------------------
---// Attributes \\--
---------------------------------------------------------------------------------
----------------- DLCs
-AuroraFramework.attributes.WeaponsEnabled = server.dlcWeapons()
-AuroraFramework.attributes.AridEnabled = server.dlcArid()
-AuroraFramework.attributes.SpaceEnabled = server.dlcSpace()
+-- Returns whether or not a class is of a specific type (equivalent to "class.__name__ == classType")
+---@param class af_libs_class_class
+---@param classType string
+AuroraFramework.libraries.class.is = function(class, classType)
+	return class.__name__ == classType
+end
 
----------------- Misc
-AuroraFramework.attributes.AddonIndex = (server.getAddonIndex())
-
---------------------------------------------------------------------------------
---// Libraries \\--
---------------------------------------------------------------------------------
 ---------------- Matrix
 AuroraFramework.libraries.matrix = {}
 
@@ -235,7 +242,7 @@ end
 ---@return af_libs_miscellaneous_pid
 AuroraFramework.libraries.miscellaneous.pid = function(proportional, integral, derivative)
     ---@type af_libs_miscellaneous_pid
-	local pid = AuroraFramework.internal.class(
+	local pid = AuroraFramework.libraries.class.create(
 		"PID",
 
 		{
@@ -273,7 +280,7 @@ end
 ---@return af_libs_miscellaneous_profiler
 AuroraFramework.libraries.miscellaneous.profiler = function()
     ---@type af_libs_miscellaneous_profiler
-	local profiler = AuroraFramework.internal.class(
+	local profiler = AuroraFramework.libraries.class.create(
 		"profiler",
 
 		{
@@ -487,7 +494,7 @@ AuroraFramework.libraries.events = {
 ---@param name string
 AuroraFramework.libraries.events.create = function(name)
 	---@type af_libs_event_event
-	local event = AuroraFramework.internal.class(
+	local event = AuroraFramework.libraries.class.create(
 		"event",
 
 		{
@@ -639,7 +646,7 @@ end
 AuroraFramework.services.zoneService.createPlayerZone = function(name, position, size)
 	-- Create zone
 	---@type af_services_zone_player_zone
-	local zone = AuroraFramework.internal.class(
+	local zone = AuroraFramework.libraries.class.create(
 		"playerZone",
 
 		{
@@ -723,7 +730,7 @@ end
 AuroraFramework.services.zoneService.createVehicleZone = function(name, position, size)
 	-- Create zone
 	---@type af_services_zone_vehicle_zone
-	local zone = AuroraFramework.internal.class(
+	local zone = AuroraFramework.libraries.class.create(
 		"vehicleZone",
 
 		{
@@ -803,12 +810,22 @@ end
 ---------------- Debugger Service
 AuroraFramework.services.debuggerService = {
 	initialize = function()
+		-- create artificial ontick event
+		AuroraFramework.internal.artificialOnTick = AuroraFramework.libraries.events.create("auroraframework_artificialOnTick")
+
 		-- configurables
 		local artificialOnTickRequestURL = "auroraframework_debugger_ontick"
 		local threshold = 2500 -- ms
 
 		-- artificial ontick heartbeat function
-		local function heartbeat()
+		---@param hasBroken boolean
+		local function heartbeat(hasBroken)
+			AuroraFramework.internal.artificialOnTick:fire()
+
+			if hasBroken then
+				return
+			end
+
 			server.httpGet(0, artificialOnTickRequestURL)
 		end
 
@@ -829,7 +846,7 @@ AuroraFramework.services.debuggerService = {
 		---@param reply string
 		AuroraFramework.callbacks.httpReply.internal:connect(function(port, url, reply)
 			-- not us or the addon has stopped, so stop here
-			if port ~= 0 and url ~= artificialOnTickRequestURL or hasBroken then
+			if port ~= 0 and url ~= artificialOnTickRequestURL then
 				return
 			end
 
@@ -837,7 +854,12 @@ AuroraFramework.services.debuggerService = {
 			artificialOnTickTime = server.getTimeMillisec()
 
 			-- go again
-			heartbeat()
+			heartbeat(hasBroken)
+
+			-- stop here if the addon has broken already
+			if hasBroken then
+				return
+			end
 
 			-- calculate difference
 			local difference = artificialOnTickTime - onTickPreviousTime
@@ -951,7 +973,7 @@ AuroraFramework.services.debuggerService.attach = function(func, logger, customH
 
 	-- create class
 	---@type af_services_debugger_attached_function
-	local attachedFunction = AuroraFramework.internal.class(
+	local attachedFunction = AuroraFramework.libraries.class.create(
 		"debuggerAttachedFunction",
 
 		{},
@@ -1026,7 +1048,7 @@ end
 AuroraFramework.services.debuggerService.createLogger = function(name, shouldSendInChat)
 	-- create the logger
 	---@type af_services_debugger_logger
-	local logger = AuroraFramework.internal.class(
+	local logger = AuroraFramework.libraries.class.create(
 		"debuggerLogger",
 
 		{
@@ -1145,7 +1167,7 @@ AuroraFramework.services.timerService.loop.create = function(duration, callback)
 
 	-- store loop
 	---@type af_services_timer_loop
-	local loop = AuroraFramework.internal.class(
+	local loop = AuroraFramework.libraries.class.create(
 		"timerLoop",
 
 		{
@@ -1197,7 +1219,7 @@ AuroraFramework.services.timerService.delay.create = function(duration, callback
 
 	-- store delay
 	---@type af_services_timer_delay
-	local delay = AuroraFramework.internal.class(
+	local delay = AuroraFramework.libraries.class.create(
 		"timerDelay",
 
 		{
@@ -1311,7 +1333,7 @@ AuroraFramework.services.communicationService.createChannel = function(name)
 
 	-- create channel
 	---@type af_services_communication_channel
-	local channel = AuroraFramework.internal.class(
+	local channel = AuroraFramework.libraries.class.create(
 		"communicationChannel",
 
 		{
@@ -1542,7 +1564,7 @@ AuroraFramework.services.groupService.internal.giveGroupData = function(group_id
 
 	-- create group
 	---@type af_services_group_group
-	local group = AuroraFramework.internal.class(
+	local group = AuroraFramework.libraries.class.create(
 		"group",
 
 		{
@@ -1879,7 +1901,7 @@ AuroraFramework.services.vehicleService.internal.giveVehicleData = function(vehi
 
 	-- create vehicle
 	---@type af_services_vehicle_vehicle
-	local vehicle = AuroraFramework.internal.class(
+	local vehicle = AuroraFramework.libraries.class.create(
 		"vehicle",
 
 		{
@@ -2282,7 +2304,7 @@ AuroraFramework.services.playerService.internal.givePlayerData = function(steam_
 
 	-- create player class
 	---@type af_services_player_player
-	local player = AuroraFramework.internal.class(
+	local player = AuroraFramework.libraries.class.create(
 		"player",
 
 		{
@@ -2564,7 +2586,7 @@ AuroraFramework.services.HTTPService.request = function(port, url, callback)
 
 	-- create a http request
 	---@type af_services_http_request
-	local httpRequest = AuroraFramework.internal.class(
+	local httpRequest = AuroraFramework.libraries.class.create(
 		"HTTPRequest",
 
 		{
@@ -2950,7 +2972,7 @@ AuroraFramework.services.chatService.internal.construct = function(author, messa
 	AuroraFramework.services.chatService.internal.message_id = AuroraFramework.services.chatService.internal.message_id + 1
 
 	---@type af_services_chat_message
-	local message = AuroraFramework.internal.class(
+	local message = AuroraFramework.libraries.class.create(
 		"chatMessage",
 
 		{
@@ -3149,7 +3171,7 @@ AuroraFramework.services.commandService = {
 AuroraFramework.services.commandService.create = function(callback, name, shorthands, capsSensitive, description, requiresAuth, requiresAdmin)
 	-- create the command
 	---@type af_services_command_command
-	local command = AuroraFramework.internal.class(
+	local command = AuroraFramework.libraries.class.create(
 		"command",
 
 		{
@@ -3422,7 +3444,7 @@ AuroraFramework.services.UIService.createScreenUI = function(name, text, x, y, p
 
 	-- Create UI
 	---@type af_services_ui_screen
-	local ui = AuroraFramework.internal.class(
+	local ui = AuroraFramework.libraries.class.create(
 		"UIScreen",
 
 		{
@@ -3523,7 +3545,7 @@ AuroraFramework.services.UIService.createMapLabel = function(name, text, pos, la
 
 	-- Create UI
 	---@type af_services_ui_map_label
-	local ui = AuroraFramework.internal.class(
+	local ui = AuroraFramework.libraries.class.create(
 		"UIMapLabel",
 
 		{
@@ -3634,7 +3656,7 @@ AuroraFramework.services.UIService.createMapLine = function(name, startPoint, en
 	
 	-- Create UI
 	---@type af_services_ui_map_line
-	local ui = AuroraFramework.internal.class(
+	local ui = AuroraFramework.libraries.class.create(
 		"UIMapLine",
 
 		{
@@ -3769,7 +3791,7 @@ AuroraFramework.services.UIService.createMapObject = function(name, title, subti
 
 	-- Create UI
 	---@type af_services_ui_map_object
-	local ui = AuroraFramework.internal.class(
+	local ui = AuroraFramework.libraries.class.create(
 		"UIMapObject",
 
 		{
