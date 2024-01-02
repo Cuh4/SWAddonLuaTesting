@@ -5,7 +5,7 @@
 # SW Addon Lua Testing
 
 ## 📚 Overview
-This repository is an addon I use to test Stormworks: Build and Rescue's Addon Lua.
+This repository is an addon I use to test Stormworks: Build and Rescue's Addon Lua, as well as my [addon framework](https://github.com/Cuh4/AuroraFramework).
 
 Feel free to `git clone`, or even contribute.
 
