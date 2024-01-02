@@ -20,4 +20,4 @@
 -- // Setup
 -------------------------------
 -- Create logger
-AuroraFramework.services.debuggerService.createLogger("Main", true)
+mainLogger = AuroraFramework.services.debuggerService.createLogger("Main", true)
