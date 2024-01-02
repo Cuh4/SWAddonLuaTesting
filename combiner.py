@@ -15,8 +15,8 @@ mainPath = "src"
 outputFile = "script.lua"
 
 __allowedFileExtensions = [".lua"]
-__fileExceptions = ["src/gameIntellisense.lua", "src/__framework/intellisense.lua"]
-__folderExceptions = []
+__fileExceptions = []
+__folderExceptions = ["src/intellisense"]
 
 # -----------------------------------------
 # // ---- Functions

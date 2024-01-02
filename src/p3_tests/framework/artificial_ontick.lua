@@ -19,6 +19,19 @@
 -------------------------------
 -- // Main
 -------------------------------
-AuroraFramework.ready:connect(function()
-    mainLogger:send(server.getPlayers())
+local statusUI = AuroraFramework.services.UIService.createScreenUI(
+    "ArtificialOnTickDisplay",
+    "Working",
+    0,
+    0.8
+)
+
+local recent = server.getTimeMillisec()
+
+AuroraFramework.internal.artificialOnTick:connect(function()
+    local now = server.getTimeMillisec()
+
+    statusUI.properties.text = ("Last updated:\n%.5f ms ago"):format(now - recent)
+
+    recent = now
 end)
