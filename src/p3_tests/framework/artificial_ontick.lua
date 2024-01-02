@@ -19,19 +19,22 @@
 -------------------------------
 -- // Main
 -------------------------------
-local statusUI = AuroraFramework.services.UIService.createScreenUI(
-    "ArtificialOnTickDisplay",
-    "Working",
-    0,
-    0.8
-)
-
 local recent = server.getTimeMillisec()
 
-AuroraFramework.internal.artificialOnTick:connect(function()
-    local now = server.getTimeMillisec()
+AuroraFramework.ready:connect(function()
+    local statusUI = AuroraFramework.services.UIService.createScreenUI(
+        "ArtificialOnTickDisplay",
+        "Working",
+        0,
+        0.8
+    )
 
-    statusUI.properties.text = ("Last updated:\n%.5f ms ago"):format(now - recent)
+    AuroraFramework.internal.artificialOnTick:connect(function()
+        local now = server.getTimeMillisec()
 
-    recent = now
+        statusUI.properties.text = ("Last updated:\n%.5f ms ago"):format(now - recent)
+        statusUI:refresh()
+
+        recent = now
+    end)
 end)
