@@ -36,7 +36,7 @@ AuroraFramework.ready:connect(function()
     AuroraFramework.internal.artificialOnTick:connect(function()
         g_savedata.count = g_savedata.count + 1
 
-        statusUI.properties.text = g_savedata.count
+        statusUI.properties.text = math.floor(g_savedata.count)
         statusUI:refresh()
     end)
 end)
