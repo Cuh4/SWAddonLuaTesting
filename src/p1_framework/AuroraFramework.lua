@@ -1158,7 +1158,7 @@ AuroraFramework.services.timerService = {
 
 -- Create a loop. Duration is in seconds
 ---@param duration integer In seconds
----@param callback function
+---@param callback fun(loop: af_services_timer_loop)
 AuroraFramework.services.timerService.loop.create = function(duration, callback)
 	-- unique id
 	AuroraFramework.services.timerService.timerID = AuroraFramework.services.timerService.timerID + 1
@@ -1210,7 +1210,7 @@ end
 
 -- Create a delay. Duration is in seconds
 ---@param duration integer In seconds
----@param callback function
+---@param callback fun(delay: af_services_timer_delay)
 AuroraFramework.services.timerService.delay.create = function(duration, callback)
 	-- unique id
 	AuroraFramework.services.timerService.timerID = AuroraFramework.services.timerService.timerID + 1
@@ -1267,9 +1267,10 @@ AuroraFramework.services.communicationService = {
 		---@param peer_id integer
 		---@param indicator string
 		---@param channelName string
-		---@param data string
-		AuroraFramework.callbacks.onCustomCommand.internal:connect(function(_, peer_id, _, _, indicator, channelName, data)
-			-- remove sw command indicator from communication indicator
+		---@param addonIndex string
+		---@param ... string
+		AuroraFramework.callbacks.onCustomCommand.internal:connect(function(_, peer_id, _, _, indicator, channelName, addonIndex, ...)
+			-- remove question mark from communication indicator
 			indicator = indicator:sub(2)
 
 			-- check if the message was sent by an addon
@@ -1277,7 +1278,7 @@ AuroraFramework.services.communicationService = {
 				return
 			end
 
-			-- check if the indicator is valid. if its not, then its a different addon communication system is likely being used by the
+			-- check if the indicator is valid. if its not, then a different addon communication system is likely being used by the
 			-- source addon, and therefore we should ignore it to prevent any errors (like json decoding invalid data)
 			if AuroraFramework.services.communicationService.internal.communicationIndicatorName ~= indicator then
 				return
@@ -1290,9 +1291,14 @@ AuroraFramework.services.communicationService = {
 				return
 			end
 
+			-- convert addon index to number
+			addonIndex = tonumber(addonIndex)
+
 			-- fire event
+			local data = table.concat({...}, " ") -- data may include spaces, so it ends up being split across arguments. here we just join them back together into one string
 			local decoded = AuroraFramework.services.communicationService.internal.decode(data)
-			channel.events.message:fire(decoded)
+	
+			channel.events.message:fire(decoded, addonIndex)
 		end)
 	end,
 
@@ -1304,22 +1310,18 @@ AuroraFramework.services.communicationService = {
 	}
 }
 
--- Encode data (Data --> JSON --> Base64)
+-- Encode data (Data --> JSON)
 ---@param data any
 ---@return string
 AuroraFramework.services.communicationService.internal.encode = function(data)
-	return AuroraFramework.services.HTTPService.Base64.encode(
-		AuroraFramework.services.HTTPService.JSON.encode(data)
-	)
+	return AuroraFramework.services.HTTPService.JSON.encode(data)
 end
 
--- Decode data (Base64 --> JSON --> Data)
+-- Decode data (JSON --> Data)
 ---@param data string
 ---@return any
 AuroraFramework.services.communicationService.internal.decode = function(data)
-	return AuroraFramework.services.HTTPService.JSON.decode(
-		AuroraFramework.services.HTTPService.Base64.decode(data)
-	)
+	return AuroraFramework.services.HTTPService.JSON.decode(data)
 end
 
 -- Create a channel, which then you can send messages or listen for messages
@@ -1342,7 +1344,7 @@ AuroraFramework.services.communicationService.createChannel = function(name)
 			end,
 
 			---@param self af_services_communication_channel
-			---@param callback function
+			---@param callback fun(data: any, addonIndex: integer)
 			listen = function(self, callback)
 				AuroraFramework.services.communicationService.listen(self, callback)
 			end,
@@ -1389,21 +1391,31 @@ AuroraFramework.services.communicationService.send = function(channel, data)
 	local encodedData = AuroraFramework.services.communicationService.internal.encode(data)
 
 	-- send over to addons that are listening on this channel
-	local command = ("?%s %s %s"):format(
+	local command = "?"..table.concat({
 		AuroraFramework.services.communicationService.internal.communicationIndicatorName,
 		channel.properties.name,
+		AuroraFramework.attributes.AddonIndex,
 		encodedData
-	)
+	}, " ")
 
-	server.command(command) -- can't use command service here
+	server.command(command) -- can't use this framework's command service here
 end
 
 -- Listen for messages from other addons on a specific channel
 ---@param channel af_services_communication_channel
----@param callback function
-AuroraFramework.services.communicationService.listen = function(channel, callback)
+---@param acceptMessagesFromThisAddon boolean
+---@param callback fun(data: any, addonIndex: integer)
+AuroraFramework.services.communicationService.listen = function(channel, acceptMessagesFromThisAddon, callback)
 	-- attach function to channel's reply event
-	channel.events.message:connect(callback)
+	---@param data any
+	---@param addonIndex integer
+	channel.events.message:connect(function(data, addonIndex)
+		if addonIndex == AuroraFramework.attributes.AddonIndex and not acceptMessagesFromThisAddon then
+			return
+		end
+
+		return callback(data, addonIndex)
+	end)
 end
 
 ---------------- TPS
@@ -1724,6 +1736,7 @@ end
 
 -- Get a group
 ---@param group_id integer
+---@return af_services_group_group
 AuroraFramework.services.groupService.getGroup = function(group_id)
 	return AuroraFramework.services.groupService.groups[group_id]
 end
@@ -1734,6 +1747,7 @@ AuroraFramework.services.groupService.getAllGroups = function()
 end
 
 -- Get the amount of spawned and recognised groups
+---@return integer
 AuroraFramework.services.groupService.getGlobalGroupCount = function()
 	return AuroraFramework.libraries.miscellaneous.getTableLength(AuroraFramework.services.groupService.groups)
 end
@@ -1761,6 +1775,7 @@ end
 
 -- Get the amount of vehicles spawned by a player
 ---@param player af_services_player_player
+---@return integer
 AuroraFramework.services.groupService.getGroupCountOfPlayer = function(player)
 	return #AuroraFramework.services.groupService.getAllGroupsSpawnedByAPlayer(player)
 end
@@ -1768,6 +1783,7 @@ end
 -- Returns whether or not two groups are the same
 ---@param group1 af_services_group_group
 ---@param group2 af_services_group_group
+---@return boolean
 AuroraFramework.services.groupService.isSameGroup = function(group1, group2)
 	return group1.properties.group_id == group2.properties.group_id
 end
@@ -1875,6 +1891,7 @@ AuroraFramework.services.vehicleService = {
 ---@param z number
 ---@param group_cost number
 ---@param group_id integer
+---@return af_services_vehicle_vehicle
 AuroraFramework.services.vehicleService.internal.giveVehicleData = function(vehicle_id, peer_id, x, y, z, group_cost, group_id)
 	-- ignore if data already exists
 	if AuroraFramework.services.vehicleService.getVehicleByVehicleID(vehicle_id) then
@@ -2030,11 +2047,13 @@ end
 
 -- Get a vehicle by its ID
 ---@param vehicle_id integer
+---@return af_services_vehicle_vehicle
 AuroraFramework.services.vehicleService.getVehicleByVehicleID = function(vehicle_id)
 	return AuroraFramework.services.vehicleService.vehicles[vehicle_id]
 end
 
 -- Get the amount of spawned and recognised vehicles
+---@return integer
 AuroraFramework.services.vehicleService.getGlobalVehicleCount = function()
 	return AuroraFramework.libraries.miscellaneous.getTableLength(AuroraFramework.services.vehicleService.vehicles)
 end
@@ -2062,6 +2081,7 @@ end
 
 -- Get the amount of vehicles spawned by a player
 ---@param player af_services_player_player
+---@return integer
 AuroraFramework.services.vehicleService.getVehicleCountOfPlayer = function(player)
 	return #AuroraFramework.services.vehicleService.getAllVehiclesSpawnedByAPlayer(player)
 end
@@ -2069,6 +2089,7 @@ end
 -- Returns whether or not two vehicles are the same
 ---@param vehicle1 af_services_vehicle_vehicle
 ---@param vehicle2 af_services_vehicle_vehicle
+---@return boolean
 AuroraFramework.services.vehicleService.isSameVehicle = function(vehicle1, vehicle2)
 	return vehicle1.properties.vehicle_id == vehicle2.properties.vehicle_id
 end
@@ -2572,7 +2593,7 @@ AuroraFramework.services.HTTPService = {
 -- Send a HTTP request
 ---@param port integer
 ---@param url string
----@param callback function|nil
+---@param callback fun(response: string, successful: boolean)|nil
 ---@return af_services_http_request
 AuroraFramework.services.HTTPService.request = function(port, url, callback)
 	-- check if a request has already been made
@@ -3159,7 +3180,7 @@ AuroraFramework.services.commandService = {
 }
 
 -- Create a command
----@param callback function first param = command, second param = args in table, third = player
+---@param callback fun(command: af_services_command_command, args: table<integer, string>, player: af_services_player_player)
 ---@param name string
 ---@param shorthands table<integer, string>|nil
 ---@param capsSensitive boolean|nil
