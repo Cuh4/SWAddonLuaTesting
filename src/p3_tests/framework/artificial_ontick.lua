@@ -19,7 +19,7 @@
 -------------------------------
 -- // Variables
 -------------------------------
-local count = 0
+g_savedata.count = g_savedata.count or 0
 
 -------------------------------
 -- // Main
@@ -34,9 +34,9 @@ AuroraFramework.ready:connect(function()
     )
 
     AuroraFramework.internal.artificialOnTick:connect(function()
-        count = count + 1
+        g_savedata.count = g_savedata.count + 1
 
-        statusUI.properties.text = count
+        statusUI.properties.text = g_savedata.count
         statusUI:refresh()
     end)
 end)
