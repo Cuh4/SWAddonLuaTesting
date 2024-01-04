@@ -19,25 +19,24 @@
 -------------------------------
 -- // Variables
 -------------------------------
-local recent = server.getTimeMillisec()
+local count = 0
 
 -------------------------------
 -- // Main
 -------------------------------
+-- if it stops counting up, it broke
 AuroraFramework.ready:connect(function()
     local statusUI = AuroraFramework.services.UIService.createScreenUI(
         "ArtificialOnTickDisplay",
-        "Working",
+        "0",
         0,
         0.8
     )
 
     AuroraFramework.internal.artificialOnTick:connect(function()
-        local now = server.getTimeMillisec()
+        count = count + 1
 
-        statusUI.properties.text = ("Last updated:\n%.5f ms ago"):format(now - recent)
+        statusUI.properties.text = count
         statusUI:refresh()
-
-        recent = now
     end)
 end)
