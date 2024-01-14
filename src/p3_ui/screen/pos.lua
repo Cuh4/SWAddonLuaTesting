@@ -17,7 +17,7 @@
 ]]
 
 -------------------------------
--- // Main
+-- // Functions
 -------------------------------
 ---@param pos SWMatrix
 local function formatPos(pos)
@@ -27,22 +27,30 @@ local function formatPos(pos)
     )
 end
 
+-------------------------------
+-- // Main
+-------------------------------
+-- Create UI on player join
 ---@param player af_services_player_player
 AuroraFramework.services.playerService.events.onJoin:connect(function(player)
     -- Create UI
-    local UI = AuroraFramework.services.UIService.createScreenUI(
+    AuroraFramework.services.UIService.createScreenUI(
         AuroraFramework.services.UIService.name("Position", player),
         "Setting up...",
         0.8,
         0,
         player
     )
+end)
 
-    -- Update UI
-    AuroraFramework.services.timerService.loop.create(0.01, function(loop)
-        -- check if player left
-        if not AuroraFramework.services.playerService.getPlayerByPeerID(player.properties.peer_id) then
-            return loop:remove()
+-- Update UI
+AuroraFramework.services.timerService.loop.create(0.01, function()
+    for _, player in pairs(AuroraFramework.services.playerService.getAllPlayers()) do
+        -- get ui
+        local UI = AuroraFramework.services.UIService.getScreenUI(AuroraFramework.services.UIService.name("Position", player))
+
+        if not UI then
+            goto continue
         end
 
         -- get player pos
@@ -51,10 +59,15 @@ AuroraFramework.services.playerService.events.onJoin:connect(function(player)
 
         -- update UI
         UI.properties.text = table.concat({
-            "Space: "..formatPos(spacePlayerPos),
-            "Normal: "..formatPos(playerPos)
+            "Space:\n"..formatPos(spacePlayerPos),
+            "---",
+            "Normal:\n"..formatPos(playerPos),
+            "---",
+            AuroraFramework.libraries.miscellaneous.switchbox("In Space", "In Gravity", isInSpace(playerPos))
         }, "\n")
 
         UI:refresh()
-    end)
+
+        ::continue::
+    end
 end)
