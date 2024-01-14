@@ -45,6 +45,10 @@ AuroraFramework.services.commandService.create(function(player, command, args)
         tonumber(args[3]) or 0
     )
 
+    if not args[1] then
+        pos = player:getPosition()
+    end
+
     player:teleport(server.getAstroPos(pos))
 end, "tp", {"t"})
 
