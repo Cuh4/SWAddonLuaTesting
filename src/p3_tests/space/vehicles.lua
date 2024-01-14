@@ -62,8 +62,23 @@ AuroraFramework.services.commandService.create(function(player, command, args)
         1
     )
 
+    server.setPopup(
+        -1,
+        1000,
+        "",
+        true,
+        "here",
+        0,
+        0,
+        0,
+        9999999999,
+        group.properties.primaryVehicle.properties.vehicle_id
+    )
+
+    mainLogger:send("spawned group - "..group.properties.group_id)
+
     -- randomly move it around its spawn point
-    AuroraFramework.services.timerService.loop.create(0.1, function(loop)
+    AuroraFramework.services.timerService.loop.create(15, function(loop)
         -- check if group despawned
         if not AuroraFramework.services.groupService.getGroup(group.properties.group_id) then
             return loop:remove()
@@ -76,7 +91,7 @@ AuroraFramework.services.commandService.create(function(player, command, args)
     end)
 
     -- despawn the group after some time
-    AuroraFramework.services.timerService.delay.create(5, function()
+    AuroraFramework.services.timerService.delay.create(45, function()
         group:despawn()
     end)
 end, "spawn", {"s"})
