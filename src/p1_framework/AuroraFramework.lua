@@ -84,6 +84,7 @@ AuroraFramework.libraries.class.create = function(name, methods, properties, eve
 
 	-- assign methods to the class
 	class = AuroraFramework.libraries.miscellaneous.combineTables(
+		false,
 		class,
 		methods
 	)
@@ -201,7 +202,7 @@ AuroraFramework.libraries.miscellaneous.tableToString = function(tbl, indent)
     return table.concat(toConcatenate, "\n")
 end
 
--- Returns whether or not if a number is between two numbers
+-- Returns whether or not a number is between two numbers
 ---@param number number
 ---@param thresholdMin number
 ---@param thresholdMax number
@@ -210,9 +211,10 @@ AuroraFramework.libraries.miscellaneous.threshold = function(number, thresholdMi
 end
 
 -- Combine tables together
+---@param shouldInsert boolean if true, the function will simply insert all values of every table into one main table and let lua handle the indexes. if false, the function will do the same but carry over the indexes, overwriting values if necessary
 ---@param ... table
 ---@return table
-AuroraFramework.libraries.miscellaneous.combineTables = function(...)
+AuroraFramework.libraries.miscellaneous.combineTables = function(shouldInsert, ...)
 	-- create vars
 	local tables = {...}
 
@@ -226,9 +228,19 @@ AuroraFramework.libraries.miscellaneous.combineTables = function(...)
 
 	-- combine tables
 	for _, tbl in pairs(tables) do
-		for index, value in pairs(tbl) do
-			main[index] = value
+		if tbl == main then
+			goto continue
 		end
+
+		for index, value in pairs(tbl) do
+			if shouldInsert then
+				table.insert(main, value)
+			else
+				main[index] = value
+			end
+		end
+
+	    ::continue::
 	end
 
 	-- return
@@ -3174,14 +3186,14 @@ AuroraFramework.services.commandService = {
 	---@type table<string, af_services_command_command>
 	commands = {},
 	events = {
-		commandActivated = AuroraFramework.libraries.events.create("auroraFramework_commandActivated") -- command, args, player
+		commandActivated = AuroraFramework.libraries.events.create("auroraFramework_commandActivated") -- player, args, command
 	},
 
 	internal = {}
 }
 
 -- Create a command
----@param callback fun(command: af_services_command_command, args: table<integer, string>, player: af_services_player_player)
+---@param callback fun(player: af_services_player_player, command: af_services_command_command, args: table<integer, string>)
 ---@param name string
 ---@param shorthands table<integer, string>|nil
 ---@param capsSensitive boolean|nil
@@ -4481,7 +4493,7 @@ AuroraFramework.services.HTTPService.initialize()
 AuroraFramework.services.TPSService.initialize()
 AuroraFramework.services.commandService.initialize()
 
----@param state "save_load"|"save_create"|"addon_reload"
+---@param state af_ready_state
 AuroraFramework.ready:connect(function(state)
 	AuroraFramework.services.playerService.initialize(state)
 	AuroraFramework.services.UIService.initialize(state)
