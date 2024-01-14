@@ -21,5 +21,5 @@
 -------------------------------
 ---@param pos SWMatrix
 function isInSpace(pos)
-    return pos[14] >= 190000
+    return pos[14] >= 160000
 end
