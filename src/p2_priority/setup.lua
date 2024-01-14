@@ -6,7 +6,7 @@
     ----------------------------
 
     INFO:
-        This tests if the framework's internal "artificialOnTick" event is working correctly.
+        Declare important variables and such.
 
     CREDIT:
         Author: @cuh6_ (Discord)
