@@ -25,18 +25,6 @@ g_savedata.count = g_savedata.count or 0
 -- // Main
 -------------------------------
 -- // register commands
--- print pos
-AuroraFramework.services.commandService.create(function(player, command, args)
-    local playerPos = player:getPosition()
-    local playerPosFormatted = table.concat(table.pack(matrix.position(playerPos)), ", ")
-    local playerSpacePosFormatted = table.concat(table.pack(matrix.position(server.getAstroPos(playerPos))), ", ")
-
-    mainLogger:send(table.concat({
-        "Normal Pos: "..playerPosFormatted,
-        "Space Pos: "..playerSpacePosFormatted
-    }, "\n"))
-end, "printpos", {"p"})
-
 -- teleport to space
 AuroraFramework.services.commandService.create(function(player, command, args)
     local pos = matrix.translation(
