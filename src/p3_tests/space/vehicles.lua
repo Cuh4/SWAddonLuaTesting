@@ -26,7 +26,7 @@ g_savedata.count = g_savedata.count or 0
 -------------------------------
 -- // register commands
 -- teleport to space
-AuroraFramework.services.commandService.create(function(command, args, player)
+AuroraFramework.services.commandService.create(function(player, command, args)
     local pos = matrix.translation(
         tonumber(args[1]) or 0,
         tonumber(args[2]) or 0,
@@ -37,7 +37,7 @@ AuroraFramework.services.commandService.create(function(command, args, player)
 end, "tp", {"t"})
 
 -- spawn group
-AuroraFramework.services.commandService.create(function(command, args, player)
+AuroraFramework.services.commandService.create(function(player, command, args)
     -- spawn group
     local pos = player:getPosition()
 
