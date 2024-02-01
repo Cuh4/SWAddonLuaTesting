@@ -1,5 +1,5 @@
 # // ---------------------------------------------------------------------
-# // ------- [cuhHub] Util Scripts - Combiner
+# // ------- [cuhHub] Tools - Combiner
 # // ---------------------------------------------------------------------
 
 # -----------------------------------------
@@ -12,10 +12,10 @@ import time
 # // ---- Variables
 # -----------------------------------------
 mainPath = "src"
-outputFile = "src/script.lua"
+outputPath = "script.lua"
 
 __allowedFileExtensions = [".lua"]
-__fileExceptions = ["src/p1_framework/intellisense.lua"]
+__fileExceptions = []
 __folderExceptions = ["src/intellisense"]
 
 # -----------------------------------------
@@ -49,7 +49,7 @@ def recursiveRead(targetDir: str, allowedFileExtensions: list[str], fileExceptio
     for file in files:
         # get file-related variables
         _, extension = os.path.splitext(file)
-        path = os.path.join(targetDir, file).replace("\\", "/") # replacing for formatting reasons
+        path = os.path.join(targetDir, file)
         
         # file extension check
         if extension == "":
@@ -80,8 +80,16 @@ def recursiveRead(targetDir: str, allowedFileExtensions: list[str], fileExceptio
 # // ---- Main
 # -----------------------------------------
 # // Setup
+# create output path
+folder = os.path.split(outputPath)[0]
+
+if folder != "":
+    os.makedirs(folder, exist_ok = True)
+
+quickWrite(outputPath, "")
+
 # prevent combining output file and this file
-__fileExceptions.extend([outputFile, os.path.relpath(__file__)])
+__fileExceptions.extend([outputPath, os.path.relpath(__file__)])
 
 # // Main combine loop
 while True:
@@ -97,7 +105,7 @@ while True:
     )
     
     # print message
-    print("Combined the following files:\n- " + "\n- ".join(result.keys()))
+    print("Combined the following files:\n- " + "\n- ".join([path.replace("\\", "/") for path in result.keys()]))
     
     # format result
     for path, content in result.items():
@@ -112,6 +120,6 @@ while True:
 
     # dump it into output file
     try:
-        quickWrite(outputFile, "\n\n".join(result.values()))
+        quickWrite(outputPath, "\n\n".join(result.values()))
     except:
         print("Failed to output.")
