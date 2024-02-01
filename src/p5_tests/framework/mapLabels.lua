@@ -22,7 +22,7 @@
 AuroraFramework.ready:connect(function()
     local start = matrix.translation(100, 0, 100)
 
-    for i = 1, 100 do
+    for i = 1, 20 do
         start = AuroraFramework.libraries.matrix.offset(start, 0, 0, i * 50)
 
         AuroraFramework.services.UIService.createMapLabel(
