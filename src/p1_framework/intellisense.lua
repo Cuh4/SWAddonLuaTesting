@@ -229,7 +229,8 @@ _ = {
     -- Send a message through this logger
     ---@param self af_services_debugger_logger
     ---@param message any
-    send = function(self, message) end,
+    ---@param ... any Custom args for string.format(message, ...)
+    send = function(self, message, ...) end,
 
     -- Suppress/Unsuppress the logger
     ---@param self af_services_debugger_logger
@@ -634,11 +635,13 @@ _ = {
 
     -- Get the position of this group
     ---@param self af_services_group_group
+    ---@return SWMatrix
     getPosition = function(self) end,
 
     -- Get a vehicle that is apart of this group
     ---@param self af_services_group_group
     ---@param vehicle_id integer
+    ---@return af_services_vehicle_vehicle
     getVehicle = function(self, vehicle_id) end
 }
 
@@ -917,4 +920,4 @@ _ = {
 -------------------------------------------------
 -- Miscellaneous
 -------------------------------------------------
----@alias af_ready_state "save_load"|"save_create"|"addon_reload"
+---@alias af_ready_state "save_load"|"save_create"|"addon_reload" Note: this is incorrect in dedicated servers

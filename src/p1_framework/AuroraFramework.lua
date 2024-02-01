@@ -59,6 +59,7 @@ AuroraFramework.attributes.SpaceEnabled = server.dlcSpace()
 
 ---------------- Misc
 AuroraFramework.attributes.AddonIndex = (server.getAddonIndex())
+AuroraFramework.attributes.AddonData = server.getAddonData(AuroraFramework.attributes.AddonIndex)
 
 --------------------------------------------------------------------------------
 --// Libraries \\--
@@ -954,7 +955,7 @@ end
 -- Attaches debug code to multiple functions. Effectively tracks function usage and notifies you when a function is called by sending a message through the provided logger
 ---@param tbl table
 ---@param logger af_services_debugger_logger
----@param customHandler function|nil Function that is called when the modified functions are called
+---@param customHandler fun(attachedFunction: af_services_debugger_attached_function, returned: any, ...: any)|nil Function that is called when the modified functions are called
 AuroraFramework.services.debuggerService.attachMultiple = function(tbl, logger, customHandler)
 	-- iterate through table
 	for index, value in pairs(tbl) do
@@ -971,7 +972,7 @@ end
 -- Attaches debug code to a function. Effectively tracks function usage and notifies you when a function is called by sending a message through the provided logger
 ---@param func function The function must be a global function and not a local one
 ---@param logger af_services_debugger_logger
----@param customHandler function|nil Function that is called when the modified function is called
+---@param customHandler fun(attachedFunction: af_services_debugger_attached_function, returned: any, ...: any)|nil Function that is called when the modified function is called
 AuroraFramework.services.debuggerService.attach = function(func, logger, customHandler)
 	-- find name if not provided
 	local funcTable, funcIndex, funcPathString = AuroraFramework.services.debuggerService.internal.findENVVariable(func)
@@ -1037,7 +1038,14 @@ AuroraFramework.services.debuggerService.attach = function(func, logger, customH
 		end
 
 		-- send debug message
-		attachedFunction.properties.logger:send(("%s() was called. | Usage Count: %s | Took: %s ms, AVG: %s ms | Returned: %s"):format(attachedFunction.properties.name, attachedFunction.properties.functionUsageCount, executionTime, averageExecutionTime, tostring(returned)))
+		attachedFunction.properties.logger:send(
+			"%s() was called. | Usage Count: %s | Took: %s ms, AVG: %s ms | Returned: %s", 
+			attachedFunction.properties.name,
+			attachedFunction.properties.functionUsageCount,
+			executionTime,
+			averageExecutionTime,
+			tostring(returned)
+		)
 
 		-- fire event
 		attachedFunction.events.functionCall:fire(attachedFunction, returned, ...)
@@ -1069,7 +1077,8 @@ AuroraFramework.services.debuggerService.createLogger = function(name, shouldSen
 
 			---@param self af_services_debugger_logger
 			---@param message any
-			send = function(self, message)
+			---@param ... any
+			send = function(self, message, ...)
 				-- don't send anything if not permitted to
 				if self.properties.suppressed then
 					return
@@ -1080,6 +1089,10 @@ AuroraFramework.services.debuggerService.createLogger = function(name, shouldSen
 					message = "\n"..AuroraFramework.libraries.miscellaneous.tableToString(message)
 				else
 					message = tostring(message)
+
+					if ... then
+						message = message:format(...)
+					end
 				end
 
 				-- send the messages
@@ -1089,9 +1102,14 @@ AuroraFramework.services.debuggerService.createLogger = function(name, shouldSen
 						message
 					)
 				else
-					debug.log(
-						("%s %s"):format(self.properties.formattedName, message:gsub("\n", ("\n%s "):format(self.properties.formattedName)))
+					local formattedName = self.properties.formattedName.." - "
+
+					message = ("%s%s"):format(
+						formattedName,
+						message:gsub("\n", ("\n%s"):format(formattedName))
 					)
+
+					debug.log(message)
 				end
 			end,
 
@@ -1105,7 +1123,10 @@ AuroraFramework.services.debuggerService.createLogger = function(name, shouldSen
 		{
 			name = name,
 			sendToChat = shouldSendInChat or false,
-			formattedName = ("[DebuggerService - Logger | %s - Addon #%s]"):format(name, AuroraFramework.attributes.AddonIndex)
+			formattedName = ("\"%s\" | %s (Logger)"):format(
+				AuroraFramework.attributes.AddonData.name,
+				name
+			)
 		},
 
 		nil,
@@ -1569,6 +1590,11 @@ AuroraFramework.services.groupService.internal.giveGroupData = function(group_id
 	-- set vehicle ids if not provided
 	vehicle_ids = vehicle_ids or server.getVehicleGroup(group_id)
 
+	-- ignore if vehicle ids cant be retrieved
+	if not vehicle_ids then
+		return
+	end
+
 	-- save the group to g_savedata for when the addon is reloaded or a save is loaded
 	local data = {
 		group_id = group_id,
@@ -1646,7 +1672,7 @@ AuroraFramework.services.groupService.internal.giveGroupData = function(group_id
 
 		-- set group attribute
 		vehicle.properties.group_id = group.properties.group_id
-
+		
 		-- insert into vehicles table
 		vehicles[vehicle_id] = vehicle
 
@@ -2204,7 +2230,7 @@ AuroraFramework.services.playerService = {
 		for _, player in pairs(server.getPlayers()) do
 			-- check if the player is connecting and hasnt loaded (the infamous "unnamed client")
 			if player.steam_id == 0 then
-				return
+				goto continue
 			end
 
 			-- give the player data
@@ -3159,12 +3185,12 @@ AuroraFramework.services.commandService = {
 			-- go through all commands
 			for _, cmd in pairs(AuroraFramework.services.commandService.commands) do
 				-- check admin permissions
-				if cmd.properties.requiresAdmin and not admin then
+				if cmd.properties.requiresAdmin and not player.properties.admin then
 					goto continue
 				end
 
 				-- check auth permissions
-				if cmd.properties.requiresAuth and not auth then
+				if cmd.properties.requiresAuth and not player.properties.auth then
 					goto continue
 				end
 
@@ -4470,9 +4496,9 @@ end
 --// Initialization \\--
 --------------------------------------------------------------------------------
 -- // Ready event
-AuroraFramework.ready = AuroraFramework.libraries.events.create("auroraframework_ready") -- provides one param: "save_load"|"save_create"|"addon_reload"
+AuroraFramework.ready = AuroraFramework.libraries.events.create("auroraframework_ready") -- note: the arguments provided to this event don't matter in dedicated servers
 
----@param first_load boolean
+---@param save_create boolean
 AuroraFramework.callbacks.onCreate.internal:connect(function(save_create)
 	AuroraFramework.services.timerService.delay.create(0, function() -- wait a tick, because stormworks g_savedata is weird
 		if save_create then
