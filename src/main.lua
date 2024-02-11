@@ -23,3 +23,8 @@
 function isInSpace(pos)
     return pos[14] >= 160000
 end
+
+-------------------------------
+-- // Main
+-------------------------------
+mainLogger:send("addon started")
