@@ -31,6 +31,6 @@ AuroraFramework.services.commandService.create(function(player, command, args)
         return
     end
 
-    server.spawnExplosion(AuroraFramework.libraries.matrix.offset(player:getPosition(), 0, 0, 45), mag)
+    server.spawnExplosion(player:getPosition(), mag)
     command:successNotification("spawned explosion", player)
 end, "explosion", {"ex"})
